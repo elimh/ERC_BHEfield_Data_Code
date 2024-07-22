@@ -46,6 +46,9 @@ class ERC_Management():
         plt.rcParams['ytick.minor.visible']= True
         plt.rcParams['mathtext.fontset'] = "dejavusans"
 
+def get_colordict(probe_strings=True, before='Probe_', after='_T_in'):
+    return ERC_Management().create_colordict(probe_strings=probe_strings, before=before, after=after)
+
 
 def plot_one_BHE(data, probes, figsize=(10,3), dpi=100, ylims=None):
     all_color_dict = ERC_Management().create_colordict(probe_strings=False)
