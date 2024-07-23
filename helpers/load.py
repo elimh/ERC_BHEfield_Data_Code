@@ -12,11 +12,11 @@ def load_raw_data(start_date, end_date, BHEs=None, masked=False):
             BHEs = [BHEs]
     if not isinstance(BHEs[0], str):
         BHEs = [f'{x:02d}' for x in BHEs]
-        column_select = []
-        for BHE in BHEs:
-            column_select.append(f'Probe_{BHE}_T_in')
-            column_select.append(f'Probe_{BHE}_T_out')
-            column_select.append(f'Probe_{BHE}_V_dot')
+    column_select = []
+    for BHE in BHEs:
+        column_select.append(f'Probe_{BHE}_T_in')
+        column_select.append(f'Probe_{BHE}_T_out')
+        column_select.append(f'Probe_{BHE}_V_dot')
 
     BHE_data =pd.DataFrame() 
     time_format = "%Y-%m-%d %H:%M:%S"

@@ -50,12 +50,13 @@ def get_colordict(probe_strings=True, before='Probe_', after='_T_in'):
     return ERC_Management().create_colordict(probe_strings=probe_strings, before=before, after=after)
 
 
-def plot_one_BHE(data, probes, figsize=(10,3), dpi=100, ylims=None):
+def plot_one_BHE(data, probes, figsize=(10,3), dpi=100, ylims=None, linewidth=1, ax=None, fig=None):
     all_color_dict = ERC_Management().create_colordict(probe_strings=False)
     if type(probes) == str:
         probes = [probes]
     titlestr = ''
-    fig, ax = plt.subplots(1,1,figsize=figsize, dpi=dpi)
+    if not ax:
+        fig, ax = plt.subplots(1,1,figsize=figsize, dpi=dpi)
     ax2 = ax.twinx()
     for probe in probes:
         titlestr += probe
@@ -63,9 +64,9 @@ def plot_one_BHE(data, probes, figsize=(10,3), dpi=100, ylims=None):
             ylims = [np.nanmin(data[[f'Probe_{probe}_T_in', f'Probe_{probe}_T_out']].values.ravel()), np.nanmax(data[[f'Probe_{probe}_T_in', f'Probe_{probe}_T_out']].values.ravel())]
         #if probe == probes[0]:
             #ax = data.plot(y = f'Probe_{probe}_T_in', figsize=figsize, color=all_color_dict.get(probe))
-        data.plot(ax=ax, y = f'Probe_{probe}_T_in', figsize=figsize, color=all_color_dict.get(probe),linewidth=1)
-        data.plot(ax=ax, y = f'Probe_{probe}_T_out', figsize=figsize, color=all_color_dict.get(probe), alpha=.5,linewidth=1)
-        data.plot(ax=ax2, y= f'Probe_{probe}_V_dot', color=all_color_dict.get(probe), style='--', alpha=.2,linewidth=1)
+        data.plot(ax=ax, y = f'Probe_{probe}_T_in', figsize=figsize, color=all_color_dict.get(probe),linewidth=linewidth)
+        data.plot(ax=ax, y = f'Probe_{probe}_T_out', figsize=figsize, color=all_color_dict.get(probe), alpha=.5,linewidth=linewidth)
+        data.plot(ax=ax2, y= f'Probe_{probe}_V_dot', color=all_color_dict.get(probe), style='--', alpha=.2,linewidth=linewidth)
         if probe != probes[-1]:
             titlestr +=', '
     ax.legend(loc='upper left')
@@ -73,11 +74,11 @@ def plot_one_BHE(data, probes, figsize=(10,3), dpi=100, ylims=None):
     ax.set_ylim(ylims[0],ylims[1])
     ax2.set_ylim(0,100)
     ax2.legend(loc='upper right')
-    ax2.set_ylabel('Flow rate [m3/h]')
+    ax2.set_ylabel('Flow rate [l/min]')
     ax.set_title('BHE '+titlestr)
-    return ax 
+    return fig, ax 
 
-def plot_data_by_vault(data, figsize=(6.4,3), dpi=300, ylims=None, all_color_dict = None, lw=0.3, title='Data by underground vault'):
+def plot_data_by_vault(data, figsize=(6.4,3), dpi=300, ylims=None, all_color_dict = None, lw=0.3, title='Data by underground vault', ymax_volflow=120):
     fig, ax = plt.subplots(2,3,figsize=figsize, dpi=dpi)#,layout='constrained')
     fig.suptitle(title)
     m = ERC_Management()
@@ -97,20 +98,20 @@ def plot_data_by_vault(data, figsize=(6.4,3), dpi=300, ylims=None, all_color_dic
 
     # blue
     data.plot(ax=ax[0,0],y=west_in,color=[all_color_dict.get(x, 'k') for x in west_in],legend=False, xticks=[], xlabel="", linewidth=lw)
-    ax2 = ax[0,0].twinx()
-    ax2.set_ylim(0,100)
+    ax2 = ax[1,0].twinx()
+    ax2.set_ylim(0,ymax_volflow)
     data.plot(ax=ax2,y=west_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)#color=[all_color_dict.get(x, 'k') for x in west_in]
     data.plot(ax=ax[1,0],y=west_out,color=[all_color_dict.get(x, 'k') for x in west_in],legend=False, linewidth=lw)
 
     data.plot(ax=ax[0,1],y=south_in,color=[all_color_dict.get(x, 'k') for x in south_in],legend=False, xticks=[], xlabel="", linewidth=lw)
-    ax3 = ax[0,1].twinx()
-    ax3.set_ylim(0,100)
+    ax3 = ax[1,1].twinx()
+    ax3.set_ylim(0,ymax_volflow)
     data.plot(ax=ax3,y=south_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
     data.plot(ax=ax[1,1],y=south_out,color=[all_color_dict.get(x, 'k') for x in south_in],legend=False, linewidth=lw)
 
     data.plot(ax=ax[0,2],y=east_in,color=[all_color_dict.get(x, 'k') for x in east_in],legend=False, xticks=[], xlabel="", linewidth=lw)
-    ax4 = ax[0,2].twinx()
-    ax4.set_ylim(0,100)
+    ax4 = ax[1,2].twinx()
+    ax4.set_ylim(0,ymax_volflow)
     data.plot(ax=ax4,y=east_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
     data.plot(ax=ax[1,2],y=east_out,color=[all_color_dict.get(x, 'k') for x in east_in],legend=False, linewidth=lw)
 
@@ -122,6 +123,8 @@ def plot_data_by_vault(data, figsize=(6.4,3), dpi=300, ylims=None, all_color_dic
     ## Remove unnecessary axis labels
     for axi in ax.flat:
         axi.set_ylim(minT, maxT)
+        #axi.grid(alpha=.3, which='major')
+        #axi.grid(alpha=.1, which='minor')
 
     ax[0,0].set_ylabel('Inlet temp. [°C]')
     ax[1,0].set_ylabel('Outlet temp. [°C]')
