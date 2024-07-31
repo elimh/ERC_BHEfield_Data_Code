@@ -7,7 +7,6 @@ from typing import List, Union, Optional
 
 
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-DEFAULT_BHE_RANGE = np.arange(1, 41, 1)
 RAW_DATA_DIR = Path("data/raw_30s")
 PREPARED_DATA_DIR = Path("data/prepared_5min")
 
@@ -85,7 +84,7 @@ def load_data(
     BHE_data = BHE_data.loc[time_start_global:time_end_global]
 
     # Apply masking if required
-    if masked:
+    if data_type == 'raw' and masked:
         for BHE in BHEs:
             mask = create_BHE_data_mask(BHE_data, BHE)
             BHE_data.loc[mask, [f'Probe_{BHE}_T_in', f'Probe_{BHE}_T_out', f'Probe_{BHE}_V_dot']] = np.nan 

@@ -1,6 +1,7 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.transforms import ScaledTranslation
 
 class ERC_Management:
     """
@@ -159,7 +160,82 @@ def get_colordict(probe_strings=True, before='Probe_', after='_T_in'):
     
     return color_dict
 
-def plot_one_BHE(data, probes, figsize=(10, 3), dpi=100, ylims=None, linewidth=1, ax=None, fig=None):
+
+def plot_one_BHE(data, probe, figsize=(10, 2.5), dpi=300, linewidth=0.5, ylims=None, ax=None, fig=None, colordict=None, title=None):
+    """
+    Plot the temperatures and flow rates for a given Borehole Heat Exchanger (BHE) data.
+
+    Parameters:
+    - data (DataFrame): A pandas DataFrame containing the BHE data.
+    - probe (str or int): A string or integer indicating the probe to be plotted.
+    - figsize (tuple): Size of the figure (width, height) in inches. Default is (10, 2.5).
+    - dpi (int): Dots per inch (DPI) for the figure. Default is 300.
+    - linewidth (float): Line width of the plots. Default is 0.5.
+    - ylims (list): List containing the min and max limits for the y-axis. Default is None.
+    - ax (matplotlib.axes._subplots.AxesSubplot): Axis object to plot on. Default is None.
+    - fig (matplotlib.figure.Figure): Figure object. Default is None.
+
+    Returns:
+    - fig (matplotlib.figure.Figure): The figure object containing the plot.
+    - ax (matplotlib.axes._subplots.AxesSubplot): The axis object of the plot.
+    """
+    # Create a dictionary for colors based on the probe strings
+    if not colordict:
+        colordict = ERC_Management().create_colordict(probe_strings=False)
+    
+    # Convert integer probe to string
+    probe = str(probe)
+    
+    # Initialize the title string
+    if not title:
+        title = f'Data of BHE {int(probe):02d}'
+    
+    # Create figure and axis if not provided
+    if not ax:
+        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
+    
+    # Create a second y-axis
+    ax2 = ax.twinx()
+    
+    # Set y-axis limits if not provided
+    if ylims is None:
+        ylims = [6, 21]
+    
+    # Plot the flow rate
+    data.plot(ax=ax2, y=f'Probe_{probe}_V_dot', color=colordict.get(f'Probe_{probe}_V_dot', 'blue'), linewidth=linewidth, x_compat=True, label='$\mathregular{V_{dot}}$', zorder=-10, legend=False)
+    
+    # Plot the inlet temperature
+    data.plot(ax=ax, y=f'Probe_{probe}_T_in', color=colordict.get(f'Probe_{probe}_T_in', 'green'), linewidth=linewidth, x_compat=True, label='$\mathregular{T_{in}}$', zorder=10, legend=False)
+    
+    # Plot the outlet temperature
+    data.plot(ax=ax, y=f'Probe_{probe}_T_out', color=colordict.get(f'Probe_{probe}_T_out', 'red'), linewidth=linewidth, x_compat=True, label='$\mathregular{T_{out}}$', zorder=11, legend=False)
+    
+    # Set legends and labels
+    ax.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+
+    ax2.set_ylim(0, 120)
+    ax2.set_ylabel('$\mathregular{V_{dot}}$ [l/min]')
+
+    ax.grid(alpha=.3, which='major')
+    ax.grid(alpha=.1, which='minor')
+    ax.set_ylabel('T [°C]')
+    ax.set_xlabel('')
+
+    dx, dy = 10, 0
+    offset = ScaledTranslation(dx / fig.dpi, dy / fig.dpi, fig.dpi_scale_trans)
+    for label in ax.get_xticklabels():
+        label.set_transform(label.get_transform() + offset)
+        label.set_rotation(0)
+    
+    ax.set_ylim(ylims[0], ylims[1])
+
+    ax.set_title(title)
+    
+    return fig, ax
+
+
+def plot_multiple_BHEs_alt(data, probes, figsize=(10, 3), dpi=100, ylims=None, linewidth=1, ax=None, fig=None):
     """
     Plot the temperatures and flow rates for a given Borehole Heat Exchanger (BHE) data.
 
@@ -313,6 +389,7 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
     # Set y-axis limits and remove unnecessary axis labels
     for axi in ax.flat:
         axi.set_ylim(minT, maxT)
+
     ax[0, 0].set_ylabel('Inlet temp. [°C]')
     ax[1, 0].set_ylabel('Outlet temp. [°C]')
 
