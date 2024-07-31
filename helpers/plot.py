@@ -52,7 +52,7 @@ class ERC_Management:
             23, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
         ]
 
-    def generate_ID_strings_per_shaft(self, probe_strings=True, before='Probe_', after='_T_in'):
+    def generate_vault_id_strings(self, probe_strings=True, before='Probe_', after='_T_in'):
         """
         Generates ID strings for each shaft based on the provided parameters.
 
@@ -89,7 +89,7 @@ class ERC_Management:
             dict: A dictionary mapping ID strings to color codes.
         """
         # Generate ID strings for each shaft
-        west, south, east = self.generate_ID_strings_per_shaft(probe_strings=probe_strings, before=before, after=after)
+        west, south, east = self.generate_vault_id_strings(probe_strings=probe_strings, before=before, after=after)
 
         # Map west shaft ID strings to blue color codes
         self.colors_west = dict(zip(west, self.blues[:len(west)]))
@@ -229,7 +229,7 @@ def plot_one_BHE(data, probes, figsize=(10, 3), dpi=100, ylims=None, linewidth=1
     
     return fig, ax
 
-def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, all_color_dict=None, lw=0.3, 
+def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=None, lw=0.3, 
                        title='Data by underground vault', ymax_volflow=120):
     """
     Plot temperature and volume flow data for different underground vaults.
@@ -239,7 +239,7 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, all_color_di
     figsize (tuple): Size of the figure (width, height) in inches. Default is (6.4, 3).
     dpi (int): Dots per inch for the figure. Default is 300.
     ylims (tuple): Tuple specifying the y-axis limits for temperature plots. If None, limits are inferred from data.
-    all_color_dict (dict): Dictionary mapping data columns to colors. If None, colors are generated.
+    color_dict (dict): Dictionary mapping data columns to colors. If None, colors are generated.
     lw (float): Line width for plots. Default is 0.3.
     title (str): Title of the entire figure. Default is 'Data by underground vault'.
     ymax_volflow (int): Maximum y-axis limit for volume flow plots. Default is 120.
@@ -257,13 +257,13 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, all_color_di
     m.set_plot_params()
     
     # Generate color dictionary if not provided
-    if not all_color_dict:
-        all_color_dict = m.create_colordict()
+    if not color_dict:
+        color_dict = m.create_colordict()
 
     # Generate ID strings for different shafts
-    west_in, south_in, east_in = m.generate_ID_strings_per_shaft(after='_T_in')
-    west_out, south_out, east_out = m.generate_ID_strings_per_shaft(after='_T_out')
-    west_vdot, south_vdot, east_vdot = m.generate_ID_strings_per_shaft(after='_V_dot')
+    west_in, south_in, east_in = m.generate_vault_id_strings(after='_T_in')
+    west_out, south_out, east_out = m.generate_vault_id_strings(after='_T_out')
+    west_vdot, south_vdot, east_vdot = m.generate_vault_id_strings(after='_V_dot')
 
     # Determine y-axis limits for temperature plots
     if not ylims:
@@ -274,30 +274,30 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, all_color_di
         maxT = ylims[1]
 
     # Plot data for West vault
-    data.plot(ax=ax[0, 0], y=west_in, color=[all_color_dict.get(x, 'k') for x in west_in], legend=False, 
+    data.plot(ax=ax[0, 0], y=west_in, color=[color_dict.get(x, 'k') for x in west_in], legend=False, 
               xticks=[], xlabel="", linewidth=lw)
     ax2 = ax[1, 0].twinx()
     ax2.set_ylim(0, ymax_volflow)
     data.plot(ax=ax2, y=west_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
-    data.plot(ax=ax[1, 0], y=west_out, color=[all_color_dict.get(x, 'k') for x in west_in], legend=False, 
+    data.plot(ax=ax[1, 0], y=west_out, color=[color_dict.get(x, 'k') for x in west_in], legend=False, 
               linewidth=lw)
 
     # Plot data for South vault
-    data.plot(ax=ax[0, 1], y=south_in, color=[all_color_dict.get(x, 'k') for x in south_in], legend=False, 
+    data.plot(ax=ax[0, 1], y=south_in, color=[color_dict.get(x, 'k') for x in south_in], legend=False, 
               xticks=[], xlabel="", linewidth=lw)
     ax3 = ax[1, 1].twinx()
     ax3.set_ylim(0, ymax_volflow)
     data.plot(ax=ax3, y=south_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
-    data.plot(ax=ax[1, 1], y=south_out, color=[all_color_dict.get(x, 'k') for x in south_in], legend=False, 
+    data.plot(ax=ax[1, 1], y=south_out, color=[color_dict.get(x, 'k') for x in south_in], legend=False, 
               linewidth=lw)
 
     # Plot data for East vault
-    data.plot(ax=ax[0, 2], y=east_in, color=[all_color_dict.get(x, 'k') for x in east_in], legend=False, 
+    data.plot(ax=ax[0, 2], y=east_in, color=[color_dict.get(x, 'k') for x in east_in], legend=False, 
               xticks=[], xlabel="", linewidth=lw)
     ax4 = ax[1, 2].twinx()
     ax4.set_ylim(0, ymax_volflow)
     data.plot(ax=ax4, y=east_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
-    data.plot(ax=ax[1, 2], y=east_out, color=[all_color_dict.get(x, 'k') for x in east_in], legend=False, 
+    data.plot(ax=ax[1, 2], y=east_out, color=[color_dict.get(x, 'k') for x in east_in], legend=False, 
               linewidth=lw)
 
     # Set titles for subplots
