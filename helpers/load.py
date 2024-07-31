@@ -1,11 +1,26 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime as dt
-from dateutil.relativedelta import *
+from dateutil.relativedelta import relativedelta
+from pathlib import Path
+from typing import List, Union, Optional
 
-def load_raw_data(start_date, end_date, BHEs=None, masked=False):
+
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+DEFAULT_BHE_RANGE = np.arange(1, 41, 1)
+RAW_DATA_DIR = Path("data/raw_30s")
+PREPARED_DATA_DIR = Path("data/prepared_5min")
+
+
+def load_data(
+    start_date: str,
+    end_date: str,
+    BHEs: Optional[Union[List[Union[str, int]], np.ndarray, str, int]] = None,
+    masked: bool = False,
+    data_type: str = 'raw'
+) -> pd.DataFrame:
     """
-    Load raw data for a given time period and selected Borehole Heat Exchangers (BHEs).
+    Load data for a given time period and selected Borehole Heat Exchangers (BHEs).
 
     Parameters:
     start_date (str): The start date in the format 'YYYY-MM-DD HH:MM:SS'.
@@ -14,9 +29,10 @@ def load_raw_data(start_date, end_date, BHEs=None, masked=False):
                                                  which loads all BHEs (1 to 40).
     masked (bool, optional): Whether to mask the data using the create_BHE_data_mask function. 
                              Default is False.
+    data_type (str, optional): Type of data to load ('raw' or 'prepared'). Default is 'raw'.
 
     Returns:
-    pd.DataFrame: DataFrame containing the loaded raw data for the specified BHEs and time period.
+    pd.DataFrame: DataFrame containing the loaded data for the specified BHEs and time period.
     """
     # Set default BHEs if none are provided
     if BHEs is None:
@@ -39,18 +55,20 @@ def load_raw_data(start_date, end_date, BHEs=None, masked=False):
 
     # Initialize empty DataFrame to store BHE data
     BHE_data = pd.DataFrame() 
-    time_format = "%Y-%m-%d %H:%M:%S"
     
     # Parse start and end dates
-    time_start_global = dt.strptime(start_date, time_format)
-    time_end_global = dt.strptime(end_date, time_format)
+    time_start_global = dt.strptime(start_date, TIME_FORMAT)
+    time_end_global = dt.strptime(end_date, TIME_FORMAT)
     time_step = relativedelta(months=+1)  
     time_start = time_start_global
 
+    data_dir = PREPARED_DATA_DIR if data_type == 'prepared' else RAW_DATA_DIR
+
     # Load data month by month within the specified date range
     while time_start <= time_end_global:
-        loadname = f"data/raw_30s/ERC_data_raw_{time_start.year}_{time_start.month:02d}.csv"
-        data = pd.read_csv(loadname)
+        #loadname = f"data/raw_30s/ERC_data_raw_{time_start.year}_{time_start.month:02d}.csv"
+        file_path = data_dir / f"ERC_data_{data_type}_{time_start.year}_{time_start.month:02d}.csv"
+        data = pd.read_csv(file_path)
         data.index = pd.to_datetime(data['Time'], utc=True)
         data.index = data.index.tz_localize(None)
         
@@ -74,7 +92,8 @@ def load_raw_data(start_date, end_date, BHEs=None, masked=False):
     
     return BHE_data
 
-def create_BHE_data_mask(data, BHE, timestep=30):
+
+def create_BHE_data_mask(data: pd.DataFrame, BHE: Union[int, str], timestep: int = 30) -> np.ndarray:
     """
     Create a boolean mask for Borehole Heat Exchanger (BHE) data based on temperature and flow rate time series.
 
@@ -85,8 +104,8 @@ def create_BHE_data_mask(data, BHE, timestep=30):
     the horizontal pipe length.
 
     Parameters:
-    - data (DataFrame): The input DataFrame containing the BHE data.
-    - BHE (int or str): The identifier for the Borehole Heat Exchanger. Can be an integer or a string.
+    - data (pd.DataFrame): The input DataFrame containing the BHE data.
+    - BHE (Union[int, str]): The identifier for the Borehole Heat Exchanger. Can be an integer or a string.
     - timestep (int, optional): The timestep in minutes. Default is 30.
 
     Returns:
@@ -98,7 +117,7 @@ def create_BHE_data_mask(data, BHE, timestep=30):
         BHE = f'{BHE:02d}'
 
     # Number of steps to mask after encountering a NaN or zero flow rate
-    time_to_mask = masking_times.get(BHE)
+    time_to_mask = MASKING_TIMES.get(BHE)
     nsteps = int(-(-time_to_mask // timestep))  # Round up to the next integer
     min_gap_size = 20
 
@@ -134,8 +153,9 @@ def create_BHE_data_mask(data, BHE, timestep=30):
     # Ensure the mask does not go out of bounds
     return mask[:len(data[f'Probe_{BHE}_T_in'].values)]
 
+
 # time to mask after a noflow or datagap period (depending on pipelength) - calculated in calculate_fluid_travel_time.ipynb
-masking_times = {'01': 625.36,
+MASKING_TIMES = {'01': 625.36,
  '02': 593.24,
  '03': 585.96,
  '04': 626.64,

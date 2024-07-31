@@ -18,7 +18,7 @@ class ERC_Management:
 
     def __init__(self) -> None:
         """
-        Initializes the ERC_Management_alt class with predefined color codes and their corresponding IDs.
+        Initializes the ERC_Management class with predefined color codes and their corresponding borehole IDs.
         """
         # Initialize the list of blue color codes
         self.blues = [
@@ -54,7 +54,7 @@ class ERC_Management:
 
     def generate_vault_id_strings(self, probe_strings=True, before='Probe_', after='_T_in'):
         """
-        Generates ID strings for each shaft based on the provided parameters.
+        Generate three lists of formatted ID strings based on predefined identifiers for west, south, and east vaults. The identifiers are combined with the provided prefixes and suffixes to create the final ID strings.
 
         Args:
             probe_strings (bool): Flag to include 'before' and 'after' strings in the IDs.
@@ -62,8 +62,12 @@ class ERC_Management:
             after (str): String to suffix each ID.
 
         Returns:
-            tuple: A tuple containing lists of ID strings for west, south, and east shafts.
+            tuple: A tuple containing three lists of formatted ID strings:
+                - west (list of str): Formatted ID strings for the west shaft.
+                - south (list of str): Formatted ID strings for the south shaft.
+                - east (list of str): Formatted ID strings for the east shaft.
         """
+
         # Generate ID strings for the west shaft
         if probe_strings:
             west = [f'{before}{x:02}{after}' for x in self.west_ids]

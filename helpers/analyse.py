@@ -1,6 +1,7 @@
 import numpy as np
 from dateutil.relativedelta import *
 from sklearn.metrics import mean_absolute_error as mae 
+from .plot import ERC_Management
     
 def get_vault_outliers_median_filter(data, after='_T_in', threshold=0.15, return_medians=True, masked_BHEs=None):
     """
@@ -64,37 +65,7 @@ def get_vault_outliers_median_filter(data, after='_T_in', threshold=0.15, return
         return mean_misfit_dict, {'med_west': med_west, 'med_south': med_south, 'med_east': med_east}
     else:
         return mean_misfit_dict
-
-def generate_ID_strings_per_shaft(before='Probe_', after='_T_in'):
-    """
-    Generate lists of formatted ID strings for different shaft orientations.
-
-    This function generates three lists of formatted ID strings based on predefined 
-    identifiers for west, south, and east shafts. The identifiers are combined with 
-    the provided prefixes and suffixes to create the final ID strings.
-
-    Args:
-        before (str): The prefix string to add before the ID number. Default is 'Probe_'.
-        after (str): The suffix string to add after the ID number. Default is '_T_in'.
-
-    Returns:
-        tuple: A tuple containing three lists of formatted ID strings:
-            - west (list of str): Formatted ID strings for the west shaft.
-            - south (list of str): Formatted ID strings for the south shaft.
-            - east (list of str): Formatted ID strings for the east shaft.
-    """
     
-    # Define the identifier lists for each shaft orientation
-    west_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    south_ids = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25]
-    east_ids = [23, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
-
-    # Generate the formatted ID strings for each shaft orientation
-    west = [f'{before}{x:02}{after}' for x in west_ids]
-    south = [f'{before}{x:02}{after}' for x in south_ids]
-    east = [f'{before}{x:02}{after}' for x in east_ids]
-
-    return west, south, east
 
 def get_ID_strings(after='T_in', masked_BHEs=None):
     """
@@ -113,7 +84,7 @@ def get_ID_strings(after='T_in', masked_BHEs=None):
     """
 
     # Generate ID strings for each shaft
-    west, south, east = generate_ID_strings_per_shaft(after=after)
+    west, south, east = ERC_Management().generate_vault_id_strings(after=after)
 
     # Check if masked_BHEs is provided
     if masked_BHEs is not None:
