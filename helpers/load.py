@@ -4,66 +4,114 @@ from datetime import datetime as dt
 from dateutil.relativedelta import *
 
 def load_raw_data(start_date, end_date, BHEs=None, masked=False):
-    ## load the raw data for a given time period and selected BHEs (list, ndarray, str or int)
-    if BHEs == None:
-        BHEs = np.arange(1,41,1)
+    """
+    Load raw data for a given time period and selected Borehole Heat Exchangers (BHEs).
+
+    Parameters:
+    start_date (str): The start date in the format 'YYYY-MM-DD HH:MM:SS'.
+    end_date (str): The end date in the format 'YYYY-MM-DD HH:MM:SS'.
+    BHEs (list, ndarray, str, or int, optional): List of BHEs to load. Default is None, 
+                                                 which loads all BHEs (1 to 40).
+    masked (bool, optional): Whether to mask the data using the create_BHE_data_mask function. 
+                             Default is False.
+
+    Returns:
+    pd.DataFrame: DataFrame containing the loaded raw data for the specified BHEs and time period.
+    """
+    # Set default BHEs if none are provided
+    if BHEs is None:
+        BHEs = np.arange(1, 41, 1)
     else:
-        if not isinstance(BHEs, list) or isinstance(BHEs, np.ndarray):
+        # Ensure BHEs is a list, convert if necessary
+        if not isinstance(BHEs, (list, np.ndarray)):
             BHEs = [BHEs]
+    
+    # Convert BHEs to string format with leading zeros
     if not isinstance(BHEs[0], str):
         BHEs = [f'{x:02d}' for x in BHEs]
+    
+    # Prepare list of columns to select
     column_select = []
     for BHE in BHEs:
         column_select.append(f'Probe_{BHE}_T_in')
         column_select.append(f'Probe_{BHE}_T_out')
         column_select.append(f'Probe_{BHE}_V_dot')
 
-    BHE_data =pd.DataFrame() 
+    # Initialize empty DataFrame to store BHE data
+    BHE_data = pd.DataFrame() 
     time_format = "%Y-%m-%d %H:%M:%S"
-    time_start_global = dt.strptime(start_date,time_format)
-    time_end_global=dt.strptime(end_date,time_format)
-    timeStep = relativedelta(months=+1)  
-    time_start=time_start_global
+    
+    # Parse start and end dates
+    time_start_global = dt.strptime(start_date, time_format)
+    time_end_global = dt.strptime(end_date, time_format)
+    time_step = relativedelta(months=+1)  
+    time_start = time_start_global
 
+    # Load data month by month within the specified date range
     while time_start <= time_end_global:
-        loadname=f"data/raw_30s/ERC_data_raw_{time_start.year}_{time_start.month:02d}.csv"
+        loadname = f"data/raw_30s/ERC_data_raw_{time_start.year}_{time_start.month:02d}.csv"
         data = pd.read_csv(loadname)
         data.index = pd.to_datetime(data['Time'], utc=True)
         data.index = data.index.tz_localize(None)
-        if len(BHEs)==40:
+        
+        # Concatenate data for all BHEs or selected columns
+        if len(BHEs) == 40:
             BHE_data = pd.concat((BHE_data, data))  
         else:
             BHE_data = pd.concat((BHE_data, data[column_select])) 
-        time_start+=timeStep
-    BHE_data= BHE_data.loc[time_start_global:time_end_global]
-    if masked == True:
+        
+        # Move to the next month
+        time_start += time_step
+
+    # Filter data for the specified date range
+    BHE_data = BHE_data.loc[time_start_global:time_end_global]
+
+    # Apply masking if required
+    if masked:
         for BHE in BHEs:
             mask = create_BHE_data_mask(BHE_data, BHE)
             BHE_data.loc[mask, [f'Probe_{BHE}_T_in', f'Probe_{BHE}_T_out', f'Probe_{BHE}_V_dot']] = np.nan 
+    
     return BHE_data
 
-
 def create_BHE_data_mask(data, BHE, timestep=30):
-    # uses T_in, T_out and V_dot and creates a mask with the same shape
-    # masks noflow, if one timeseries has a datagap, and the next n steps after it, depending on the horizontal pipe length
+    """
+    Create a boolean mask for Borehole Heat Exchanger (BHE) data based on temperature and flow rate time series.
+
+    This function generates a mask for the provided BHE data to indicate periods of no flow or data gaps.
+    The mask is created based on the `T_in`, `T_out`, and `V_dot` columns in the `data` DataFrame. The mask 
+    will be True for periods where there is no flow (flow rate below a threshold), or where there are data 
+    gaps in the flow rate time series, including a specified number of steps after such gaps, depending on 
+    the horizontal pipe length.
+
+    Parameters:
+    - data (DataFrame): The input DataFrame containing the BHE data.
+    - BHE (int or str): The identifier for the Borehole Heat Exchanger. Can be an integer or a string.
+    - timestep (int, optional): The timestep in minutes. Default is 30.
+
+    Returns:
+    - np.ndarray: A boolean array mask with the same length as the input data series for the BHE.
+    """
+
+    # Convert BHE identifier to a zero-padded string if it is an integer
     if isinstance(BHE, int):
         BHE = f'{BHE:02d}'
 
-    # Number of steps to mask after encountering a NaN or zero (depending on total pipe length)
+    # Number of steps to mask after encountering a NaN or zero flow rate
     time_to_mask = masking_times.get(BHE)
-    nsteps = int(-(-time_to_mask // timestep)) # rounds up to the next integer
+    nsteps = int(-(-time_to_mask // timestep))  # Round up to the next integer
     min_gap_size = 20
 
-    # Initialize the boolean mask
+    # Initialize the boolean mask with the same shape as the temperature input series
     mask = np.zeros_like(data[f'Probe_{BHE}_T_in'].values, dtype=bool)
 
-    # Create zero volflow mask
+    # Create a mask for zero flow rate
     mask_volflow = data[f'Probe_{BHE}_V_dot'].values < 0.5
 
-    #### Create a boolean mask for no data volflow
+    # Create a mask for NaN (no data) in flow rate
     mask_nan_volflow = np.zeros_like(data[f'Probe_{BHE}_V_dot'].values, dtype=bool)
 
-    # Find the start and end of NaN sequences
+    # Find the start and end indices of NaN sequences
     nan_diff = np.diff(np.concatenate(([0], np.isnan(data[f'Probe_{BHE}_V_dot'].values), [0])))
     nan_starts = np.where(nan_diff == 1)[0]
     nan_ends = np.where(nan_diff == -1)[0]
@@ -72,15 +120,17 @@ def create_BHE_data_mask(data, BHE, timestep=30):
     for start, end in zip(nan_starts, nan_ends):
         if end - start > min_gap_size:
             mask_nan_volflow[start:min(end + nsteps, len(data[f'Probe_{BHE}_V_dot'].values))] = True
-    ### End creation boolean mask nodata volflow
 
-    # Combine both conditions
+    # Combine the zero flow rate mask and the NaN mask
     combined_mask = mask_nan_volflow | mask_volflow
+
     # Find indices where combined_mask is True
     indices = np.where(combined_mask)[0]
+
     # Set mask to True for these indices and the next nsteps
     for idx in indices:
         mask[idx:idx + nsteps + 1] = True
+
     # Ensure the mask does not go out of bounds
     return mask[:len(data[f'Probe_{BHE}_T_in'].values)]
 
