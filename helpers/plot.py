@@ -330,7 +330,8 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
 
     # Create a 2x3 subplot arrangement
     fig, ax = plt.subplots(2, 3, figsize=figsize, dpi=dpi)
-    fig.suptitle(title)
+    if title:
+        fig.suptitle(title, y=1.05)
     
     # Initialize ERC_Management object and set plot parameters
     m = ERC_Management()
@@ -381,9 +382,9 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
               linewidth=lw)
 
     # Set titles for subplots
-    ax[0, 0].set_title('V1')
-    ax[0, 1].set_title('V2')
-    ax[0, 2].set_title('V3')
+    ax[0, 0].set_title('A')
+    ax[0, 1].set_title('B')
+    ax[0, 2].set_title('C')
     ax4.set_ylabel('Volume flow [l/min]')
 
     # Set y-axis limits and remove unnecessary axis labels

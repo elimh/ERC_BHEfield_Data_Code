@@ -1,9 +1,21 @@
 import numpy as np
 from dateutil.relativedelta import *
-from sklearn.metrics import mean_absolute_error as mae 
+#from sklearn.metrics import mean_absolute_error as mae 
 from .plot import ERC_Management
-    
-def get_vault_outliers_median_filter(data, after='_T_in', threshold=0.15, return_medians=True, masked_BHEs=None):
+import pandas as pd
+from typing import List, Dict, Tuple, Optional, Union
+#from typing import Any
+
+def mae(x: np.ndarray, y: np.ndarray) -> float:
+    """Calculate mean absolute error between two arrays."""
+    return np.mean(np.abs(x - y))
+
+def get_vault_outliers_median_filter(
+    data: pd.DataFrame,
+    after: str = '_T_in',
+    threshold: float = 0.15,
+    return_medians: bool = True,
+    masked_BHEs: Optional[List[str]] = None) -> Union[Dict[str, float], Tuple[Dict[str, float], Dict[str, np.ndarray]]]:
     """
     Identifies the Borehole Heat Exchangers (BHEs) whose offset from the median of all BHEs 
     in the vault exceeds a specified threshold.
@@ -13,24 +25,25 @@ def get_vault_outliers_median_filter(data, after='_T_in', threshold=0.15, return
     after (str): Suffix to filter BHE IDs. Default is '_T_in'.
     threshold (float): Threshold value to identify outliers based on mean absolute error. Default is 0.15.
     return_medians (bool): If True, returns the medians of BHE groups along with the outliers. Default is True.
-    masked_BHEs (list or None): List of BHE IDs to be excluded from the analysis. Default is None.
+    masked_BHEs (List[str] or None): List of BHE IDs to be excluded from the analysis. Default is None.
 
     Returns:
-    dict: A dictionary with BHE IDs as keys and their mean misfit values as values.
-    dict (optional): If return_medians is True, returns a second dictionary with the medians of the BHE groups.
+    Dict[str, float]: A dictionary with BHE IDs as keys and their mean misfit values as values.
+    Tuple[Dict[str, float], Dict[str, np.ndarray]] (optional): If return_medians is True, returns a second dictionary with the medians of the BHE groups.
     """
+
 
     # Get the BHE ID strings for west, south, and east groups
     west_in, south_in, east_in = get_ID_strings(after=after, masked_BHEs=masked_BHEs)
 
-    # Calculate the median for each BHE group
+    # Calculate the median for each underground vault
     med_west = np.nanmedian(data[west_in].values.T, axis=0)
     med_south = np.nanmedian(data[south_in].values.T, axis=0)
     med_east = np.nanmedian(data[east_in].values.T, axis=0)
 
     mean_misfit_dict = {}
 
-    # Calculate mean misfit for the west group and identify outliers
+    # Calculate mean misfit for the west vaukt and identify outliers
     for f in west_in:
         mask = np.isnan(data[f]) + np.isnan(med_west)
         if len(np.unique(mask)) == 1 and np.unique(mask)[0]:
@@ -40,7 +53,7 @@ def get_vault_outliers_median_filter(data, after='_T_in', threshold=0.15, return
         if np.abs(mean_misfit) > threshold:
             mean_misfit_dict.update({f: mean_misfit})
 
-    # Calculate mean misfit for the east group and identify outliers
+    # Calculate mean misfit for the east vault and identify outliers
     for f in east_in:
         mask = np.isnan(data[f]) + np.isnan(med_east)
         if len(np.unique(mask)) == 1 and np.unique(mask)[0]:
@@ -50,7 +63,7 @@ def get_vault_outliers_median_filter(data, after='_T_in', threshold=0.15, return
         if np.abs(mean_misfit) > threshold:
             mean_misfit_dict.update({f: mean_misfit})
 
-    # Calculate mean misfit for the south group and identify outliers
+    # Calculate mean misfit for the south vault and identify outliers
     for f in south_in:
         mask = np.isnan(data[f]) + np.isnan(med_south)
         if len(np.unique(mask)) == 1 and np.unique(mask)[0]:
@@ -100,3 +113,25 @@ def get_ID_strings(after='T_in', masked_BHEs=None):
                 east.remove(masked)
 
     return west, south, east
+
+def get_deltaT_df(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate the temperature difference (delta T) between inlet and outlet temperatures for each probe.
+
+    Parameters:
+    data (pd.DataFrame): The dataframe containing the inlet and outlet temperature data.
+
+    Returns:
+    pd.DataFrame: A dataframe with the temperature differences for each probe.
+    """
+    BHEs: np.ndarray = np.arange(1, 41, 1)
+    deltaT_df: pd.DataFrame = pd.DataFrame()
+
+    for probe in BHEs:
+        probe_str: str = f'{probe:02d}'
+        inlet: np.ndarray = data[f'Probe_{probe_str}_T_in'].values
+        outlet: np.ndarray = data[f'Probe_{probe_str}_T_out'].values
+        deltaT_df[f'Probe_{probe_str}_delta_T'] = outlet - inlet
+    
+    deltaT_df.index = data.index
+    return deltaT_df
