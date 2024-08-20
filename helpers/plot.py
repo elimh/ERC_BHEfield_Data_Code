@@ -1,11 +1,15 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.transforms import ScaledTranslation
+from matplotlib.patches import Rectangle
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 class ERC_Management:
     """
-    ERC_Management_alt class manages the color codes and IDs for different shafts and provides
+    ERC_Management_alt class manages the color codes and IDs for different vaults and provides
     methods to generate ID strings and create color dictionaries for plotting purposes.
 
     Attributes:
@@ -64,12 +68,12 @@ class ERC_Management:
 
         Returns:
             tuple: A tuple containing three lists of formatted ID strings:
-                - west (list of str): Formatted ID strings for the west shaft.
-                - south (list of str): Formatted ID strings for the south shaft.
-                - east (list of str): Formatted ID strings for the east shaft.
+                - west (list of str): Formatted ID strings for the west vault.
+                - south (list of str): Formatted ID strings for the south vault.
+                - east (list of str): Formatted ID strings for the east vault.
         """
 
-        # Generate ID strings for the west shaft
+        # Generate ID strings for the west vault
         if probe_strings:
             west = [f'{before}{x:02}{after}' for x in self.west_ids]
             south = [f'{before}{x:02}{after}' for x in self.south_ids]
@@ -83,7 +87,7 @@ class ERC_Management:
 
     def create_colordict(self, probe_strings=True, before='Probe_', after='_T_in'):
         """
-        Creates a dictionary mapping ID strings to color codes for each shaft.
+        Creates a dictionary mapping ID strings to color codes for each vault.
 
         Args:
             probe_strings (bool): Flag to include 'before' and 'after' strings in the IDs.
@@ -93,16 +97,16 @@ class ERC_Management:
         Returns:
             dict: A dictionary mapping ID strings to color codes.
         """
-        # Generate ID strings for each shaft
+        # Generate ID strings for each vault
         west, south, east = self.generate_vault_id_strings(probe_strings=probe_strings, before=before, after=after)
 
-        # Map west shaft ID strings to blue color codes
+        # Map west vault ID strings to blue color codes
         self.colors_west = dict(zip(west, self.blues[:len(west)]))
 
-        # Map south shaft ID strings to brown color codes
+        # Map south vault ID strings to brown color codes
         self.colors_south = dict(zip(south, self.browns[:len(south)]))
 
-        # Map east shaft ID strings to green color codes
+        # Map east vault ID strings to green color codes
         self.colors_east = dict(zip(east, self.greens[:len(east)]))
 
         # Combine all mappings into a single dictionary
@@ -161,7 +165,7 @@ def get_colordict(probe_strings=True, before='Probe_', after='_T_in'):
     return color_dict
 
 
-def plot_one_BHE(data, probe, figsize=(10, 2.5), dpi=300, linewidth=0.5, ylims=None, ax=None, fig=None, colordict=None, title=None):
+def plot_one_BHE(data, probe, figsize=(10, 2.5), dpi=300, linewidth=0.5, axis_label_T = 'Temperature (°C)', axis_label_V = 'Volume flow (l/min)', ylims=None, ax=None, fig=None, colordict=None, title=None):
     """
     Plot the temperatures and flow rates for a given Borehole Heat Exchanger (BHE) data.
 
@@ -187,8 +191,11 @@ def plot_one_BHE(data, probe, figsize=(10, 2.5), dpi=300, linewidth=0.5, ylims=N
     probe = str(probe)
     
     # Initialize the title string
-    if not title:
-        title = f'Data of BHE {int(probe):02d}'
+    if title is False:
+        title = ''
+    else:
+        if not title:
+            title = f'Data of BHE {int(probe):02d}'
     
     # Create figure and axis if not provided
     if not ax:
@@ -215,11 +222,11 @@ def plot_one_BHE(data, probe, figsize=(10, 2.5), dpi=300, linewidth=0.5, ylims=N
     ax2.legend(loc='upper right')
 
     ax2.set_ylim(0, 120)
-    ax2.set_ylabel('$\mathregular{V_{dot}}$ [l/min]')
+    ax2.set_ylabel(axis_label_V)
 
     ax.grid(alpha=.3, which='major')
     ax.grid(alpha=.1, which='minor')
-    ax.set_ylabel('T [°C]')
+    ax.set_ylabel(axis_label_T)
     ax.set_xlabel('')
 
     dx, dy = 10, 0
@@ -310,7 +317,7 @@ def plot_multiple_BHEs_alt(data, probes, figsize=(10, 3), dpi=100, ylims=None, l
     return fig, ax
 
 def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=None, lw=0.3, 
-                       title='Data by underground vault', ymax_volflow=120):
+                       title='Data by underground vault', ymax_volflow=120, legend=True):
     """
     Plot temperature and volume flow data for different underground vaults.
 
@@ -341,7 +348,7 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
     if not color_dict:
         color_dict = m.create_colordict()
 
-    # Generate ID strings for different shafts
+    # Generate ID strings for different vaults
     west_in, south_in, east_in = m.generate_vault_id_strings(after='_T_in')
     west_out, south_out, east_out = m.generate_vault_id_strings(after='_T_out')
     west_vdot, south_vdot, east_vdot = m.generate_vault_id_strings(after='_V_dot')
@@ -354,14 +361,17 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
         minT = ylims[0]
         maxT = ylims[1]
 
+    westlabel, southlabel, eastlabel  = ERC_Management().generate_vault_id_strings(before='', after='')
+
     # Plot data for West vault
     data.plot(ax=ax[0, 0], y=west_in, color=[color_dict.get(x, 'k') for x in west_in], legend=False, 
               xticks=[], xlabel="", linewidth=lw)
     ax2 = ax[1, 0].twinx()
     ax2.set_ylim(0, ymax_volflow)
     data.plot(ax=ax2, y=west_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
-    data.plot(ax=ax[1, 0], y=west_out, color=[color_dict.get(x, 'k') for x in west_in], legend=False, 
-              linewidth=lw)
+    data.plot(ax=ax[1, 0], y=west_out, color=[color_dict.get(x, 'k') for x in west_in], legend=legend, 
+              linewidth=lw, label=westlabel)
+
 
     # Plot data for South vault
     data.plot(ax=ax[0, 1], y=south_in, color=[color_dict.get(x, 'k') for x in south_in], legend=False, 
@@ -369,8 +379,8 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
     ax3 = ax[1, 1].twinx()
     ax3.set_ylim(0, ymax_volflow)
     data.plot(ax=ax3, y=south_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
-    data.plot(ax=ax[1, 1], y=south_out, color=[color_dict.get(x, 'k') for x in south_in], legend=False, 
-              linewidth=lw)
+    data.plot(ax=ax[1, 1], y=south_out, color=[color_dict.get(x, 'k') for x in south_in], legend=legend, 
+              linewidth=lw, label=southlabel)
 
     # Plot data for East vault
     data.plot(ax=ax[0, 2], y=east_in, color=[color_dict.get(x, 'k') for x in east_in], legend=False, 
@@ -378,21 +388,22 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
     ax4 = ax[1, 2].twinx()
     ax4.set_ylim(0, ymax_volflow)
     data.plot(ax=ax4, y=east_vdot, cmap='Greys', legend=False, xticks=[], xlabel="", linewidth=lw, alpha=.5)
-    data.plot(ax=ax[1, 2], y=east_out, color=[color_dict.get(x, 'k') for x in east_in], legend=False, 
-              linewidth=lw)
+    data.plot(ax=ax[1, 2], y=east_out, color=[color_dict.get(x, 'k') for x in east_in], legend=legend, 
+              linewidth=lw, label=eastlabel)
 
     # Set titles for subplots
     ax[0, 0].set_title('A')
     ax[0, 1].set_title('B')
     ax[0, 2].set_title('C')
-    ax4.set_ylabel('Volume flow [l/min]')
+    ax4.set_ylabel('Volume flow (l/min)')
 
     # Set y-axis limits and remove unnecessary axis labels
     for axi in ax.flat:
         axi.set_ylim(minT, maxT)
+        axi.set_xlabel('')
 
-    ax[0, 0].set_ylabel('Inlet temp. [°C]')
-    ax[1, 0].set_ylabel('Outlet temp. [°C]')
+    ax[0, 0].set_ylabel('Inlet temp. (°C)')
+    ax[1, 0].set_ylabel('Outlet temp. (°C)')
 
     for axi in ax[0, :]:
         axi.axes.get_xaxis().set_visible(False)
@@ -402,7 +413,113 @@ def plot_data_by_vault(data, figsize=(6.4, 3), dpi=300, ylims=None, color_dict=N
     ax2.axes.get_yaxis().set_visible(False)
     ax3.axes.get_yaxis().set_visible(False)
 
+    if legend:
+        for axi in ax[1,:]:
+            axi.legend(loc='upper center', 
+                    bbox_to_anchor=(0.5, -0.35),fancybox=False, shadow=False, ncol=5, prop={'size': 6}, handlelength=1, labelspacing=.5, columnspacing=0.8)
+
+
     # Adjust subplots layout
     fig.subplots_adjust(wspace=0.03, hspace=0.1)
 
+    return fig
+
+
+#########################################################
+############### New from analysis paper #################
+#########################################################
+def plot_well_borders(ax):
+    """Plots well borders on the given axis."""
+    borders = {
+        'south': ([3, 26, 26, 26, 26, 88, 88, 88, 110, 110, 118, 118, 118, 20, 3, 3],
+                    [24, 24, 18, 11, 11, 11, 11, 18, 18, 8, 8, 3, 3, 3, 3, 18], '#6F4E37'),
+        'west': ([3,26,26,26,26,64,64,64,64,3,3,3],
+                    [25,25,25,47,47,47,47,54,54,54,54,25], '#6082B6'),
+        'east': ([65, 88, 88, 88, 88, 111, 111, 111, 111, 118, 118, 118, 118, 65, 65, 65],
+                    [47, 47, 47, 19, 19, 19, 19, 9, 9, 9, 9, 54, 54, 54, 54, 47], '#355E3B')
+    }
+    for key, (x, y, color) in borders.items():
+        ax.fill(x, y, color='whitesmoke', edgecolor=color, linewidth=.9, alpha=.3)
+
+def plot_ducts(ax, fontsize):
+    """Plots the ducts and annotations on the given axis."""
+    ducts = {
+        'B': (74.01, 4.18, '#6F4E37'),
+        'C': (100.9, 32.14, '#6082B6'),
+        'A': (18.76, 46.45, '#355E3B')
+    }
+    for label, (x, y, color) in ducts.items():
+        well = Rectangle((x, y), 5, 5, linewidth=1, edgecolor='k', facecolor='w', alpha=.9, zorder=100)
+        ax.add_patch(well)
+        ax.annotate(label, [x + 2.7, y + 2.3], va='center', ha='center', c=color, fontsize=fontsize, zorder=101)
+
+
+def plot_bhe_field_comparison(left_plot, right_plot, figsize=(6.33,2.3), dpi=300, scattersize=200, fontsize=5, textcolor='w'):
+    """
+    Plot a comparison of Borehole Heat Exchanger (BHE) field data for two different scenarios.
+
+    Parameters:
+    left_plot (dict): Dictionary containing parameters for the left plot (e.g., cooling scenario).
+        Expected keys: 'title', 'zValue', 'vmin', 'vmax', 'cmap', 'label'.
+    right_plot (dict): Dictionary containing parameters for the right plot (e.g., heating scenario).
+        Expected keys: 'title', 'zValue', 'vmin', 'vmax', 'cmap', 'label'.
+
+    Returns:
+    fig: The matplotlib figure object containing the plots.
+    """
+    # Load the BHE field data from a CSV file
+    PipeData = pd.read_csv('D:/BHEfieldData/ERC_Datapub/ERC_BHEfield_Data_Code/Supplementary_BHE_Data.csv')
+    
+    # Create subplots with shared x and y axes
+    fig, ax = plt.subplots(1, 2, figsize=figsize, dpi=dpi, sharex=True, sharey=True)
+
+    # Plot common elements (well borders and ducts) on both subplots
+    for axi in ax:
+        plot_well_borders(axi)
+        ERC = Rectangle((27.59, 12.43), 58.31, 33.48, linewidth=.9, edgecolor='k', facecolor='none', hatch=r"//")
+        axi.add_patch(ERC)
+        plot_ducts(axi, fontsize=fontsize+1)
+        axi.set_aspect('equal')
+        axi.axes.get_yaxis().set_ticks([])
+        axi.set_axis_off()
+
+    # Plot the left subplot (e.g., Cooling)
+    ax[0].set_title(left_plot['title'], y=0.93)
+    sc = ax[0].scatter(PipeData['X'], PipeData['Y'], s=scattersize, c=left_plot['zValue'], 
+                       vmin=left_plot['vmin'], vmax=left_plot['vmax'], cmap=left_plot['cmap'])
+    for i, row in PipeData.iterrows():
+        ax[0].annotate(np.round(left_plot['zValue'][i], 2), [row['X'] + 0.2, row['Y'] - 0.2], 
+                       va='center', ha='center', c=textcolor, fontsize=fontsize)
+
+    # Add a scale bar to the left subplot
+    asb = AnchoredSizeBar(ax[0].transData,
+                          10,
+                          r"10 m",
+                          loc='lower left',
+                          pad=0.0, borderpad=0.0, sep=1,
+                          frameon=False, label_top=True,
+                          bbox_to_anchor=(0.152, 0.295),
+                          bbox_transform=ax[0].figure.transFigure)
+    ax[0].add_artist(asb)
+    # Add a colorbar to the left subplot
+    cbax = ax[0].inset_axes([.375, -.07, 0.25, 0.04], transform=ax[0].transAxes)
+    fig.colorbar(sc, ax=ax[0], cax=cbax, orientation='horizontal')
+    ax[0].text(.33, -.06, left_plot['label'], transform=ax[0].transAxes)
+
+    # Plot the right subplot (e.g., Heating)
+    ax[1].set_title(right_plot['title'], y=0.93)
+    sc = ax[1].scatter(PipeData['X'], PipeData['Y'], s=scattersize, c=right_plot['zValue'], 
+                       vmin=right_plot['vmin'], vmax=right_plot['vmax'], cmap=right_plot['cmap'])
+    for i, row in PipeData.iterrows():
+        ax[1].annotate(np.round(right_plot['zValue'][i], 2), [row['X'] + 0.2, row['Y'] - 0.2], 
+                       va='center', ha='center', c=textcolor, fontsize=fontsize)
+
+    # Add a colorbar to the right subplot
+    cbax = ax[1].inset_axes([.375, -.07, 0.25, 0.04], transform=ax[1].transAxes)
+    fig.colorbar(sc, ax=ax[1], cax=cbax, orientation='horizontal')
+    ax[1].text(.33, -.06, right_plot['label'], transform=ax[1].transAxes)
+
+    # Adjust the space between the subplots
+    fig.subplots_adjust(wspace=-0.05)
+    
     return fig

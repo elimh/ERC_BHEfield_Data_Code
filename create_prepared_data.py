@@ -20,7 +20,6 @@ NEW_TIME_INTERVAL: str = '300s'  # Example: 1H for one hour, 300s for 5 min, etc
 MASK_WRONG_SENSOR_DATA: bool = True  # Whether to mask wrong sensor data
 START_DATE: str = "2018-07-01 00:00:00"
 END_DATE: str = "2024-06-30 23:59:59"
-# END_DATE: str = "2024-06-30 23:59:59"
 TIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 
 # Define global paths

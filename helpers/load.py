@@ -7,8 +7,8 @@ from typing import List, Union, Optional
 
 
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-RAW_DATA_DIR = Path("data/raw_30s")
-PREPARED_DATA_DIR = Path("data/prepared_5min")
+RAW_DATA_DIR = Path("D:/BHEfieldData/ERC_Datapub/ERC_BHEfield_Data_Code/data/raw_30s")
+PREPARED_DATA_DIR = Path("D:/BHEfieldData/ERC_Datapub/ERC_BHEfield_Data_Code/data/prepared_5min")
 
 
 def load_data(
