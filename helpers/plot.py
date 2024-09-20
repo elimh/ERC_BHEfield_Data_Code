@@ -209,7 +209,7 @@ def plot_one_BHE(data, probe, figsize=(10, 2.5), dpi=300, linewidth=0.5, axis_la
         ylims = [6, 21]
     
     # Plot the flow rate
-    data.plot(ax=ax2, y=f'Probe_{probe}_V_dot', color=colordict.get(f'Probe_{probe}_V_dot', 'blue'), linewidth=linewidth, x_compat=True, label='$\mathregular{V_{dot}}$', zorder=-10, legend=False)
+    data.plot(ax=ax2, y=f'Probe_{probe}_V_dot', color=colordict.get(f'Probe_{probe}_V_dot', 'blue'), linewidth=linewidth, x_compat=True, label='$\mathregular{V}$', zorder=-10, legend=False)
     
     # Plot the inlet temperature
     data.plot(ax=ax, y=f'Probe_{probe}_T_in', color=colordict.get(f'Probe_{probe}_T_in', 'green'), linewidth=linewidth, x_compat=True, label='$\mathregular{T_{in}}$', zorder=10, legend=False)
