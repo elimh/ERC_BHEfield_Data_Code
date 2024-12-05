@@ -1,3 +1,11 @@
 \__pycache__
-\data
+data/raw_30s/Pump_data.csv
 *.pdf
+
+# Ignore everything in data/raw_30s
+data/raw_30s/*
+data/prepared_5min/*
+
+# Unignore data1.csv in data/raw_30s
+!data/raw_30s/ERC_data_raw_2023_03.csv
+!data/prepared_5min/ERC_data_prepared_2023_03.csv
