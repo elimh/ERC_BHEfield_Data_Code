@@ -89,6 +89,8 @@ def load_data(
             mask = create_BHE_data_mask(BHE_data, BHE)
             BHE_data.loc[mask, [f'Probe_{BHE}_T_in', f'Probe_{BHE}_T_out', f'Probe_{BHE}_V_dot']] = np.nan 
     
+    BHE_data = BHE_data.select_dtypes(include=[np.number]) # kp warum das jetzt auf einmal nötig ist?
+    
     return BHE_data
 
 

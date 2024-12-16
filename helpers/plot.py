@@ -522,4 +522,68 @@ def plot_bhe_field_comparison(left_plot, right_plot, figsize=(6.33,2.3), dpi=300
     # Adjust the space between the subplots
     fig.subplots_adjust(wspace=-0.05)
     
-    return fig
+    return fig, ax
+
+
+
+def plot_one_bhe_field(left_plot, figsize=(6.33,2.3), dpi=300, scattersize=200, fontsize=5, textcolor='w', plot_duct=True, plot_building=True, plot_scale_bar=True, plot_values=True, plot_BHE_IDs=False):
+    """
+    Plot a comparison of Borehole Heat Exchanger (BHE) field data for two different scenarios.
+
+    Parameters:
+    left_plot (dict): Dictionary containing parameters for the left plot (e.g., cooling scenario).
+        Expected keys: 'title', 'zValue', 'vmin', 'vmax', 'cmap', 'label'.
+    right_plot (dict): Dictionary containing parameters for the right plot (e.g., heating scenario).
+        Expected keys: 'title', 'zValue', 'vmin', 'vmax', 'cmap', 'label'.
+
+    Returns:
+    fig: The matplotlib figure object containing the plots.
+    """
+    # Load the BHE field data from a CSV file
+    PipeData = pd.read_csv('D:/BHEfieldData/ERC_Datapub/ERC_BHEfield_Data_Code/Supplementary_BHE_Data.csv')
+    
+    # Create subplots with shared x and y axes
+    fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi, sharex=True, sharey=True)
+
+    # Plot common elements (well borders and ducts) on both subplots
+
+    plot_well_borders(ax)
+    if plot_building:
+        ERC = Rectangle((27.59, 12.43), 58.31, 33.48, linewidth=.9, edgecolor='k', facecolor='none', hatch=r"//")
+        ax.add_patch(ERC)
+    if plot_duct:
+        plot_ducts(ax, fontsize=fontsize+1)
+    ax.set_aspect('equal')
+    ax.axes.get_yaxis().set_ticks([])
+    ax.set_axis_off()
+
+    # Plot the left subplot (e.g., Cooling)
+    ax.set_title(left_plot['title'], y=0.93)
+    sc = ax.scatter(PipeData['X'], PipeData['Y'], s=scattersize, c=left_plot['zValue'], 
+                       vmin=left_plot['vmin'], vmax=left_plot['vmax'], cmap=left_plot['cmap'])
+    if plot_values:
+        for i, row in PipeData.iterrows():
+            ax.annotate(np.round(left_plot['zValue'][i], 2), [row['X'] + 0.2, row['Y'] - 0.2], 
+                        va='center', ha='center', c=textcolor, fontsize=fontsize)
+    if plot_BHE_IDs:
+        for i, row in PipeData.iterrows():
+            ax.annotate(int(row['BHE ID']), [row['X'] + 0.2, row['Y'] - 0.2], 
+                        va='center', ha='center', c=textcolor, fontsize=fontsize)
+
+    if plot_scale_bar:
+        # Add a scale bar to the left subplot
+        asb = AnchoredSizeBar(ax.transData,
+                            10,
+                            r"10 m",
+                            loc='lower left',
+                            pad=0.0, borderpad=0.0, sep=1,
+                            frameon=False, label_top=True,
+                            bbox_to_anchor=(0.152, 0.295),
+                            bbox_transform=ax.figure.transFigure)
+        ax.add_artist(asb)
+    # Add a colorbar to the left subplot
+    cbax = ax.inset_axes([.375, -.07, 0.25, 0.04], transform=ax.transAxes)
+    fig.colorbar(sc, ax=ax, cax=cbax, orientation='horizontal')
+    ax.text(.33, -.06, left_plot['label'], transform=ax.transAxes)
+
+    return fig, ax
